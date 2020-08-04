@@ -1,0 +1,107 @@
+## 决策树算法
+
+1. ID3算法：在每个结点处选取能获得最高信息增益的分支属性进行分裂
+2. 在每个决策结点处划分分支、选取分支属性的目的是将整个决策树的样本的纯度提升
+3. 衡量样本集合纯度的指标则是熵
+$$\text {Entropy}(S)=-\sum_{i=1}^{m} p_{i} \log _{2}\left(p_{i}\right), p_{i}=\frac{\left|C_{i}\right|}{n}$$
+
+4. 信息增益
+$$\operatorname{Gain}(S, \mathbb{A})=\operatorname{Entropy}(S)-\sum_{i=1}^{v}
+\frac{\left|S_{i}\right|}{|S|} \operatorname{Entropy}\left(S_{i}\right)$$
+
+缺点：同样区分度的两个属性，取值种类越多，信息增益也越多，
+
+### C4.5 算法
+总体思路与ID3类似，都是通过构造决策树进行分类，区别在于分类的处理，在分支的处
+理，在分支属性的选取上，ID3算法使用信息增益作为度量，而C4.5算法引入了信息增益率
+作为度量
+
+$$\text { Gain-ratio(A) }=\frac{\operatorname{Gain}(A)}{-\sum_{i=1}^{v}
+\frac{\left|S_{i}\right|}{|S|} \log _{2} \frac{\left|S_{i}\right|}{|S|}}$$
+
+### C5.0 算法
+
+1. C5.0 算法的目的是对含有大量数据的数据集进行分析
+2. 与C4.5算法相比有以下优势：
+   - 决策树构建时间要比C4.5算法快上数倍，同时生成的决策树规模也更小，拥有更少的叶子节点数
+   - 使用了提升法（boosting),组合多个决策树来做分类，使准确率大大提高
+   - 提升可选项由使用者视情况决定，例如是否考虑样本的权重、样本错误分类成本等
+
+### CART算法
+
+CART算法采用的是一种二分循环分割的方法，每次都把当前样本集划分头 两个子样本集，
+使生成的决策树的结点均有两个分支，显然，这样就构造 了一个二叉树。如果分支属性有
+多于两个取值，在分裂时会对属性值进行组合，选择最佳的两个组合分支。假设某属性存在
+q个可能取值，那么以该属性作为分支属性，生成两个分支的分裂方法共有$2^(q-1)-1$种
+
+CART算法在分支处理中分支属性的度量指标是Gini指标
+
+$$\operatorname{Gini}(S)=1-\sum_{i=1}^{m} p_{i}^{2}, p_{i}=\frac{\left|C_{i}\right|}{|S|}$$
+
+```{python}
+import numpy as np
+import random
+from sklearn import tree
+from graphviz import Source
+np.random.seed(42)
+X = np.random.randint(10,size=(100,4))
+Y = np.random.randint(2,size=100)
+a = np.column_stack((Y,X))
+a
+clf = tree.DecisionTreeClassifier(criterion="gini",max_depth=3)
+clf = clf.fit(X,Y)
+graph = Source(tree.export_graphviz(clf,out_file=None))
+graph.format = 'png'
+graph.render('cart_tree',view=True)
+
+```
+
+
+
+
+
+
+# 有监督式学习
+回归任务的典型性能衡量指标是均方根误差（RMSE），指的是预测过程中的标准偏差。
+```{python}
+import os
+import tarfile
+from six.moves import urllib
+DOWNLOAD_ROOT = "https://raw.githubusercontent.com/ageron/handson-ml/master/"
+HOUSING_PATH = "datasets/housing"
+HOUSING_URL = DOWNLOAD_ROOT+HOUSING_PATH+"/housing.tgz"
+HOUSING_URL
+
+def fetch_housing_data(housing_url=HOUSING_URL,housing_path=HOUSING_PATH):
+   #检查是否有这个路径，没有的话新创建一个
+    if not os.path.isdir(housing_path):
+        os.makedirs(housing_path)
+        tgz_path = os.path.join(housing_path,"housing.tgz")#拼接路径
+        urllib.request.urlretrieve(housing_url,"tgz_path")
+        housing_tgz = tarfile.open(tgz_path)
+        housing_tgz.extractall(path=housing_path)
+        housing_tgz.close()
+
+
+import pandas as pd 
+def load_housing_data(housing_path=HOUSING_PATH):
+    csv_path = os.path.join(housing_path,"housing.csv")
+    return pd.read_csv(csv_path)
+
+housing = load_housing_data()
+
+
+```
+
+## K-近邻算法（k-Nearest Neighbors）
+## 线性回归（Linear Regression）
+## 逻辑回归(Logistic Regrression)
+## 支持向量机（Support Vector Machines,SVM）
+## 决策树和随机森林（Decision Trees and Random Factor）
+## 神经网络（Neural networks）
+# 无监督式学习
+## 聚类算法
+## k-平均算法（k-means）
+## 分层聚类分析（Hierarchiral Cluster Analysis）
+## 最大期望算法（Expectation Maximization）
+## 

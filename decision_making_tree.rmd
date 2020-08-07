@@ -1,3 +1,66 @@
+---
+title: "Markov预测法在股票价格波动率预测中的应用"
+author: "王梦圆"
+date: "2020-02"
+output:
+  bookdown::html_document2:
+    fig_caption: true
+    highlight: haddock
+    keep_md: true
+    md_extensions: +east_asian_line_breaks
+    number_sections: true
+    pandoc_args:
+    - --filter
+    - pandoc-crossref
+    - -M
+    - eqnPrefix=
+    seq_numbering: false
+    toc: true
+  bookdown::pdf_document2:
+    keep_tex: true
+    latex_engine: xelatex
+    md_extensions: +east_asian_line_breaks
+    pandoc_args:
+    - --listing
+    - --filter
+    - pandoc-crossref
+    toc: false
+  slidy_presentation:
+    highlight: haddock
+  bookdown::word_document2:
+    fig_caption: true
+    md_extensions: +east_asian_line_breaks
+    pandoc_args:
+    - --filter
+    - pandoc-crossref
+    reference_docx: ./style/word-styles-02.docx
+  ioslides_presentation:
+    highlight: haddock
+    slide_level: 3
+  beamer_presentation:
+    keep_tex: true
+    latex_engine: xelatex
+    toc: true
+    pandoc_args:
+    - --listing
+    - --filter
+    - pandoc-crossref
+    slide_level: 3
+    template: ./style/beamer-template.tex
+csl: ./style/chinese-gb7714-2005-numeric.csl
+css: ./style/markdown.css
+bibliography: Bibfile.bib
+eqnPrefixTemplate: ($$i$$)
+institute: 中南财经政法大学统计与数学学院
+link-citations: true
+linkReferences: true
+chapters: true
+tableEqns: false
+autoEqnLabels: false
+---
+
+
+# 有监督学习
 ## 决策树算法
 
 1. ID3算法：在每个结点处选取能获得最高信息增益的分支属性进行分裂
@@ -56,14 +119,139 @@ graph.render('cart_tree',view=True)
 
 ```
 
+## 分类
+
+分类是将事物按特性进行分类，例如将手写数字图片分类为对应的数字。
+
+使用MNIST数据集
+```{python}
+#下载数据集
+from sklearn.datasets import fetch_openml
+mnist = fetch_openml("mnist_784")
+
+X,y = mnist['data'],mnist['target']
+X.shape
+y.shape
+#显示图像
+import matplotlib
+import matplotlib.pyplot as plt
+
+some_digit = X[36000] #抓取任意一个X值
+some_digit
+some_digit_image = some_digit.reshape(28,28)#图片像素是28*28的数组，抓取一个实例的特征向量，重新形成一个28*28的数组
+
+#用matplotlib的imshow（）函数将图显示出来
+plt.imshow(some_digit_image,cmap=matplotlib.cm.binary,interpolation="nearest")
+
+plt.axis("off")#关闭坐标轴
+plt.show()
+
+#上面的图像看起来是8，根据标签y来验证，是正确的
+y[36000]#字符串
+import numpy as np
+y = y.astype(np.uint8)
+y[36000]#数值型
+
+
+```
+
+划分训练集(前60000张)和测试集（后10000张图像）
+```{python}
+X_train,X_test,y_train,y_test = X[:60000],X[60000:],y[:60000],y[60000:]
+
+```
+对训练集数据要重新洗牌
+```{python}
+import numpy as np 
+shuffle_index = np.random.permutation(60000)
+X_train,y_train = X_train[shuffle_index],y_train[shuffle_index]
+```
+
+### 训练一个二元分类器
+二元分类器（数字8检测器）只能区别两个类别：8和非8。
+
+创建目标向量：
+
+```{python}
+y_train_9 = (y_train == 9) # True for all 5s, False for all other digits
+y_test_9 = (y_test==9)
+
+```
+选择随机梯度下降（SGD）分类器，使用Slearn-Learn的SGDClassifier类即可。这个分类器的优势是，能够有效处理非常大型的数据集。此时先创建一个SGDClassifier并在整个训练集上进行训练：
+
+```{python}
+from sklearn.linear_model import SGDClassifier
+sgd_clf =SGDClassifier(random_state=42)#random_state=42设置随机数种子，保证每次结果可以复现
+sgd_clf.fit(X_train,y_train_9)
+```
 
 
 
+```{python}
 
+sgd_clf.predict([some_digit])
+
+```
+输出结果是False，表示分类器划分错误。
+
+### 性能考核
+
+1. 使用交叉验证测量精度
+
+利用cross_val_score()这一类交叉验证的函数
+
+```{python}
+from sklearn.model_selection import StratifiedKFold
+from sklearn.base import clone
+
+
+skfold = StratifiedKFold(n_splits=3,random_state=42)
+
+for train_index,test_index in skfold.split(X_train,y_train_9):
+    clone_clf = clone(sgd_clf)
+    X_train_folds = X_train[train_index]
+    y_train_folds = (y_train_9[train_index])
+    X_test_folds = X_train[test_index]
+    y_test_folds = (y_train_9[test_index])
+
+    clone_clf.fit(X_train_folds,y_train_folds)
+    y_pred = clone_clf.predict(X_test_folds)
+    n_correct = sum(y_pred == y_test_folds)
+    print(n_correct/len(y_pred))
+
+
+```
+用cross_val_score（）函数来评估SGDClassifier模型，采用K-fold交叉验证法，3 个折叠。记住，K-fold交叉验证的意思是将训练集分解成K个折叠（在本例中，为3折），然后每次留其中1个折叠进行预测，剩余的折叠用来训练
+```{python}
+from sklearn.model_selection import cross_val_score
+##得到每层的准确率
+cross_val_score(sgd_clf,X_train,y_train_9,cv=3,scoring="accuracy")
+```
+准确率不是成为分类器的首要性能指标，特别是处理偏斜数据的时候
+
+### 混淆矩阵
+
+评估分类器性能的更好方法是混淆矩阵。总体思路就是统计A类别实例被分成为B类别的次数。
+要计算混淆矩阵，需要先有一组预测才能将其与实际目标进行比较。作为替代，可以使用cross_val_predict（）函数：
+```{python}
+from sklearn.model_selection import cross_val_predict
+y_train_pred = cross_val_predict(sgd_clf,X_train,y_train_9,cv=3)#返回的不是评估分数，而是每个折叠的预测
+
+#获取混淆矩阵
+from sklearn.metrics import confusion_matrix
+confusion_matrix(y_train_9,y_train_pred)
+
+```
+得到的混淆矩阵
+$$\left[\begin{array}{cc}
+52096 & 1955 \\
+1469 & 4480
+\end{array}\right]$$
+其中行表示实际类别，列表示预测类别。
 
 # 有监督式学习
 回归任务的典型性能衡量指标是均方根误差（RMSE），指的是预测过程中的标准偏差。
-```{python}
+```{python eval=F,echo=F,error=T}
 import os
 import tarfile
 from six.moves import urllib
@@ -99,6 +287,8 @@ housing = load_housing_data()
 ## 支持向量机（Support Vector Machines,SVM）
 ## 决策树和随机森林（Decision Trees and Random Factor）
 ## 神经网络（Neural networks）
+
+
 # 无监督式学习
 ## 聚类算法
 ## k-平均算法（k-means）

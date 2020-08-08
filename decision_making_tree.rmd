@@ -249,7 +249,80 @@ $$\left[\begin{array}{cc}
 \end{array}\right]$$
 其中行表示实际类别，列表示预测类别。
 
-# 有监督式学习
+计算精度和召回率
+
+```{python}
+from sklearn.metrics import precision_score,recall_score
+precision_score(y_train_9,y_train_pred)#精度
+recall_score(y_train_9,y_train_pred)#召回率
+
+```
+
+F1分数：由精度和召回率组成的一个单一指标
+计算F1分数，只需要调用f1_score()即可
+
+```{python}
+from sklearn.metrics import f1_score
+f1_score(y_train_9,y_train_pred)#计算f1分数
+
+```
+
+使用cross_val_predict（）函数获取训练集中所有实例的分数，但是这次需要它返回的是决策分数而不是预测结果,以决定使用什么阈值。
+
+```{python}
+y_scores = cross_val_predict(sgd_clf,X_train,y_train_9,cv=3,method="decision_function")
+
+```
+有了这些分数，可以使用precision_recall_curve（）函数来计算所有可能的阈值的精度和召回率：
+
+```{python}
+from sklearn.metrics import precision_recall_curve
+precision,recalls,thresholds = precision_recall_curve(y_train_9,y_scores)
+
+def plot_precision_recall_vs_threshold(precision,recalls,thresholds):
+    plt.plot(thresholds,precision[:-1],'b--',label="Precision")
+    plt.plot(thresholds,recalls[:-1],'g-',label="Recall")
+    plt.xlabel("Threshold")
+    plt.legend(loc="upper left")
+    plt.ylim([0,1])
+
+plot_precision_recall_vs_threshold(precision,recalls,thresholds)
+plt.plot(recalls,precision)
+plt.show()
+
+```
+## 训练模型
+### 线性回归（Linear Regression）
+
+普通函数
+```{python}
+import numpy as np
+X = 2*np.random.rand(100,1)
+y = 4+3*X + np.random.rand(100,1)
+X_b = np.c_[np.ones((100,1)),X]
+X_b
+theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
+theta_best
+X_new = np.array([[0],[2]])
+X_new_b = np.c_[np.ones((2,1)),X_new]
+y_predict = X_new_b.dot(theta_best)
+y_predict
+
+```
+
+Scikit-Learn的等效代码
+
+```{python}
+from sklearn.linear_model import LinearRegression
+fit1 = LinearRegression()
+fit1.fit(X,y)
+fit1.coef_,fit1.intercept_
+fit1.predict(X_new)
+```
+### 梯度下降
+梯度下降是一种非常通用的优化算法，能够为大范围的问题找到最优解。梯度下降的中心思想就是迭代地调整参数从而使成本函数最小化。
+
+
 回归任务的典型性能衡量指标是均方根误差（RMSE），指的是预测过程中的标准偏差。
 ```{python eval=F,echo=F,error=T}
 import os
@@ -282,7 +355,7 @@ housing = load_housing_data()
 ```
 
 ## K-近邻算法（k-Nearest Neighbors）
-## 线性回归（Linear Regression）
+
 ## 逻辑回归(Logistic Regrression)
 ## 支持向量机（Support Vector Machines,SVM）
 ## 决策树和随机森林（Decision Trees and Random Factor）
